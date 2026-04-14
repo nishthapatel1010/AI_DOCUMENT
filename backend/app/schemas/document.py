@@ -1,21 +1,36 @@
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
 
-# Base schema for shared fields
+
+# 🔹 Base schema (shared fields)
 class DocumentBase(BaseModel):
     title: str
     description: Optional[str] = None
-    file_url: str
-    size_kb: Optional[int] = None
 
-# Schema for creating a document
+
+# 🔹 Used when creating document (via upload)
 class DocumentCreate(DocumentBase):
     pass
 
-# Schema for returning a document (Response)
+
+# 🔹 Used for updating document
+class DocumentUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+
+
+# 🔹 Internal schema (optional, useful for service layer)
+class DocumentInDB(DocumentBase):
+    file_url: str
+    size_kb: Optional[int] = None
+
+
+# 🔹 Response schema (what API returns)
 class DocumentOut(DocumentBase):
     id: int
+    file_url: str
+    size_kb: Optional[int] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

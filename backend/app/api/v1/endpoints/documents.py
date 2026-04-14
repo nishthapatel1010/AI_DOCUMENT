@@ -1,42 +1,36 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.models.document import Document
-from app.schemas.document import DocumentCreate, DocumentOut
+from app.schemas.document import DocumentOut, DocumentUpdate
+from app.controllers.document_controller import DocumentController
 
 router = APIRouter()
 
-@router.get("/", response_model=List[DocumentOut])
-def list_documents(db: Session = Depends(get_db)):
-    """
-    List all documents in the system.
-    """
-    documents = db.query(Document).all()
-    return documents
 
-@router.post("/", response_model=DocumentOut, status_code=201)
-def create_document(doc_in: DocumentCreate, db: Session = Depends(get_db)):
-    """
-    Register a new document metadata.
-    """
-    new_doc = Document(
-        title=doc_in.title,
-        description=doc_in.description,
-        file_url=doc_in.file_url,
-        size_kb=doc_in.size_kb
-    )
-    db.add(new_doc)
-    db.commit()
-    db.refresh(new_doc)
-    return new_doc
+@router.post("/upload-document", response_model=DocumentOut)
+def upload_document(
+    title: str = Form(...),
+    description: str = Form(None),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    return DocumentController.upload(db, title, description, file)
 
-@router.get("/{document_id}", response_model=DocumentOut)
-def get_document(document_id: int, db: Session = Depends(get_db)):
-    """
-    Get detailed information for a specific document.
-    """
-    doc = db.query(Document).filter(Document.id == document_id).first()
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
-    return doc
+
+@router.get("/get-all-document", response_model=list[DocumentOut])
+def get_all_documents(db: Session = Depends(get_db)):
+    return DocumentController.get_all(db)
+
+
+@router.get("/get-document-by-id/{doc_id}", response_model=DocumentOut)
+def get_document(doc_id: int, db: Session = Depends(get_db)):
+    return DocumentController.get_by_id(db, doc_id)
+
+
+@router.patch("/update-document/{doc_id}", response_model=DocumentOut)
+def update_document(
+    doc_id: int,
+    data: DocumentUpdate,
+    db: Session = Depends(get_db)
+):
+    return DocumentController.update(db, doc_id, data)
